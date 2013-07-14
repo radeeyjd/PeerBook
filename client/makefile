@@ -1,3 +1,3 @@
 all:
-	g++ -o fo fileOperation.cpp PeerBook.h logical.cpp
+	g++ -o pb fileService.cpp fileOperation.cpp logical.cpp PeerBook.h driver.cpp -lpthread
 	

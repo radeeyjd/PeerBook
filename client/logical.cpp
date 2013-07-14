@@ -15,12 +15,16 @@ int Logical::initialize() {
 		fileList >> _files[_numofFiles].filename;
 		fileList >>	_files[_numofFiles].IP;
 		fileList >>	_files[_numofFiles].port;
+		fileList >> _files[_numofFiles].version;
+		fileList >> _files[_numofFiles].is_home;
+		fileList >> _files[_numofFiles].is_cached;
 		_numofFiles++;						//Set number of files 
 	}
 
 	fileList.close();						//Close file
 	for(int iii = 0; iii < _numofFiles - 1; iii++)
-		std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << std::endl;
+		std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << " " << _files[iii].version  << " " << _files[iii].is_home << " " << _files[iii].is_cached << std::endl;
+		_fileServices.start();
 }
 
 Files *Logical::getFileinfo(std::string fname) {
