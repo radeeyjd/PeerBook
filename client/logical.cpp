@@ -7,6 +7,10 @@ Logical::Logical() {
 	initialize();
 }
 
+//int Logical::_numofFiles;
+//Files Logical::_files[100];
+//FileServices Logical::_fileServices;
+
 int Logical::initialize() {
 	std::ifstream fileList;		  		   //Create a new Stream
 	_numofFiles = 0;	
@@ -22,8 +26,8 @@ int Logical::initialize() {
 	}
 
 	fileList.close();						//Close file
-	for(int iii = 0; iii < _numofFiles - 1; iii++)
-		std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << " " << _files[iii].version  << " " << _files[iii].is_home << " " << _files[iii].is_cached << std::endl;
+//	for(int iii = 0; iii < _numofFiles - 1; iii++)
+//		std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << " " << _files[iii].version  << " " << _files[iii].is_home << " " << _files[iii].is_cached << std::endl;
 		_fileServices.start();
 }
 
@@ -38,15 +42,40 @@ Files *Logical::getFileinfo(std::string fname) {
 }
 
 void Logical::list() {
-	for(int iii = 0; iii < _numofFiles - 1; iii++)
-		std::cout << iii << ". " << _files[iii].filename << std::endl;
-
+	int flength = 0;
+	for(int i = 0; i < _numofFiles - 2; i++)
+		flength += _files[i].filename.size() + 3;
+	flength -= 3;
+	for(int i = 0; i < flength; i++) {
+		if(i == flength/2) {
+			std::cout << "home" << std::endl;
+			break;
+		}
+		else
+			std::cout << " ";
+	}
+	for(int i = 0; i < flength; i++) {
+		if(i == flength/2) {
+			std::cout << "  |" << std::endl;
+			break;
+		}
+		else
+			std::cout << " ";
+	}	
+	for(int i = 0; i < flength + _files[_numofFiles-2].filename.size() ; i++)
+		std::cout << "_";
+	std::cout << std::endl;
+	
+	for(int iii = 0; iii < _numofFiles - 1; iii++) {
+		std::cout << "|";
+		for(int i = 0; i < _files[iii].filename.size()+2; i++)
+			std::cout <<" ";
+		//	std::cout << _files[iii].filename << "   ";
+	}
+	std::cout << std::endl;
+	for(int iii = 0; iii < _numofFiles - 1; iii++) {
+		std::cout << _files[iii].filename << "   ";
+	}
+	std::cout << std::endl;
 }
-
-
-/*int main() {
-	Logical l;
-	l.initialize();
-	l.getFileinfo("file1");
-}*/
 

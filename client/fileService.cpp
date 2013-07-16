@@ -15,7 +15,7 @@
 #include <sys/types.h> 	
 
 //Start the peer server
-void * peerServer(void * arg) {
+void * FileServices::peerServer(void * arg) {
 //std::cout << "Starting to listen " << std::endl;
 	int serverSock, sent, newsockfd;
 	struct hostent *serv_addr;
@@ -32,13 +32,11 @@ void * peerServer(void * arg) {
 	//bind the socket
 	if((bind(serverSock, (struct sockaddr *)&server, sizeof(server))) == -1) {
 		std::cout << "PeerServer Bind Call failed" << std::endl;
-
 	}
 
 	//Start Listening to connections
 	if(listen(serverSock, 5) == -1) {
 		std::cout << "PeerServer Listen call failed" << std::endl;
-
 	}
 	while(1) {
 			
@@ -48,7 +46,7 @@ void * peerServer(void * arg) {
 
 		}	
 			if(fork() == 0) {
-		std::cout << "New File Request! " << std::endl;
+			std::cout << "New Request! " << std::endl;
 			int request,rec, sent;
 			rec = recv(newsockfd, &request, sizeof(int), 0);
 			if(rec == -1) {
@@ -58,7 +56,7 @@ void * peerServer(void * arg) {
 			//Switch on the request type
 			switch(request) {
 				case 0: {
-				//Request for a file
+				//Read file request
 					int fnameSize;
 					char fname[20];
 					char fdir[20] = "home/current/";
@@ -81,21 +79,46 @@ void * peerServer(void * arg) {
 					close(newsockfd);
 					break;	
 					}
+				case 1: {
+				//Write file request
+					int fnameSize, recvd, fileSize;
+					char fname[20];
+					char fdir[20] = "home/current/";
+					rec = recv(newsockfd, &fnameSize, sizeof(size_t), 0);
+					rec = recv(newsockfd, fname, fnameSize, 0); //Assume it already has the file
+					strcat(fdir,fname);
+					FILE *pFile;
+					char buf[65536];
+					recvd = recv(newsockfd, &fileSize, sizeof(int), 0);
+					recvd = recv(newsockfd, buf, fileSize, 0);
+					pFile = fopen(fdir, "w");
+					fwrite(buf, 1, fileSize, pFile);
+					fclose(pFile);
+					close(newsockfd);	
+					std::cout <<"File "<< fdir <<" is updated." << std::endl;
+					break;
+					}
+				default: {
+					std::cout << "Illegal request" << std::endl;
 				}
-			}				
-   		}
-  	}
+			}
+		}	
+	
+   	}
+	close(serverSock);			  	
+}
 
 FileServices::FileServices() {
 }
 
 int FileServices::start() {
-	pthread_create(&sid, NULL, peerServer, NULL);
+	pthread_create(&sid, NULL, &FileServices::peerServer, NULL);
 	return 1;
 }
 
 int FileServices::stop() {
-	pthread_join(sid, NULL);
+//	pthread_join(sid, NULL);
+//	pthread_exit(sid, NULL);
 	return 1;
 }
 

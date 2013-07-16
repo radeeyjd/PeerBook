@@ -1,5 +1,6 @@
 #pragma once
 #include <string>
+#include <queue>
 
 //Data structure to store file metadata
 class Files {
@@ -25,7 +26,7 @@ class FileServices {
 		FileServices();
 		int start();
 		int stop();
-
+		static void * peerServer(void * arg); 
 	private:
 		pthread_t sid;
 };
@@ -40,7 +41,7 @@ class Logical {
 		int _numofFiles;
 		Files _files[100];
 		FileServices _fileServices;
-
+		
 	public:	
 		int initialize();
 		Files *getFileinfo(std::string fname);
@@ -60,15 +61,19 @@ class Logical {
 //	7. Join & Leave
 class FileOperations {
 	private:
-		Logical _logical;
+		static Logical _logical;
+		static std::queue<std::string> updateQ;
+		pthread_t uid;
 	
 	public:
 		int createfile(std::string filename);
 		int deletefile(std::string filename);
-		int readfile(std::string filename, int version, int mode); //Request for the file from the home device
-		int writefile(std::string filename); //write the file to the home device
-		int list();
+		static int readfile(std::string filename, int version, int mode); //Request for the file from the home device
+		static int writefile(std::string filename); //write the file to the home device
+		static int list();
 		int commmit(std::string filename);
+		static void * updateManager(void * arg);
+		static int cachefile(std::string filename); 
 		FileOperations();
 };
 
