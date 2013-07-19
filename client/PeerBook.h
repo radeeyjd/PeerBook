@@ -27,8 +27,17 @@ class FileServices {
 		int start();
 		int stop();
 		static void * peerServer(void * arg); 
+		int initialize();
+		static Files* getFileinfo(char* fname);
+		static int updatefilelist();
+		static int getVersion(char* fname);	
+	
 	private:
 		pthread_t sid;
+		static int _numofFiles;
+		static Files _files[100];
+
+
 };
 
 //Provides mechanism to abstract file distribution

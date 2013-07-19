@@ -55,23 +55,42 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 		int fnameSize = filename.size();
 		sent = send(serverSock, &fnameSize, sizeof(size_t), 0); //Send file size
 		sent = send(serverSock, filename.c_str(), fnameSize, 0);	//Send file name
-		int fileSize,recvd;
-		recvd = recv(serverSock, &fileSize, sizeof(int), 0);
-		char buf[65536];
-		std::string fdir;
-		if(mode == 0)
-			fdir = "home/temp/";
-		else if(mode == 1)
-			fdir = "home/cache/";
-		fdir.append(filename);	
-		FILE *pFile;	
-		pFile = fopen(fdir.c_str(), "w");
-		recvd = recv(serverSock, buf, fileSize, 0);
-		fwrite(buf, 1, fileSize, pFile);
-		fclose(pFile);
+		
+		int ver, local_ver, recvd;
+		int bypass = 0;
+
+		recvd = recv(serverSock, &ver, sizeof(int), 0);
+		
+		if(1) {
+				Files *file = new Files;
+				file = _logical.getFileinfo(filename);
+				local_ver = file->version;
+				if(ver == local_ver)
+					bypass = 1;
 		}
-		close(serverSock);	
+
+		sent = send(serverSock, &bypass, sizeof(int), 0);
+		
+		if(bypass == 0) {
+			int fileSize;
+			recvd = recv(serverSock, &fileSize, sizeof(int), 0);
+			char buf[65536];
+			std::string fdir;
+			if(mode == 0)
+				fdir = "home/temp/";
+			else if(mode == 1)
+				fdir = "home/cache/";
+			fdir.append(filename);	
+			FILE *pFile;	
+			pFile = fopen(fdir.c_str(), "w");
+			recvd = recv(serverSock, buf, fileSize, 0);
+			fwrite(buf, 1, fileSize, pFile);
+			fclose(pFile);
+		}
+	}
+	close(serverSock);	
 }
+
 
 int FileOperations::writefile(std::string filename) {
 	int serverSock, sent;		//Create a new server sock to connect to tracker
