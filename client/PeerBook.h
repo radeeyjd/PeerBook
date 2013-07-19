@@ -31,13 +31,11 @@ class FileServices {
 		static Files* getFileinfo(char* fname);
 		static int updatefilelist();
 		static int getVersion(char* fname);	
-	
+		static int killserver();	
 	private:
 		pthread_t sid;
 		static int _numofFiles;
 		static Files _files[100];
-
-
 };
 
 //Provides mechanism to abstract file distribution
@@ -56,6 +54,7 @@ class Logical {
 		Files *getFileinfo(std::string fname);
 		void list();
 		Logical();
+		int shutdown();
 };
 
 //User Interface layer and file operations
@@ -80,10 +79,11 @@ class FileOperations {
 		static int readfile(std::string filename, int version, int mode); //Request for the file from the home device
 		static int writefile(std::string filename); //write the file to the home device
 		static int list();
-		int commmit(std::string filename);
+		int commit(std::string filename);
 		static void * updateManager(void * arg);
 		static int cachefile(std::string filename); 
 		FileOperations();
+		int shutdown();
 };
 
 

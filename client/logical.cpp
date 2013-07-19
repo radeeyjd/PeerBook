@@ -79,3 +79,6 @@ void Logical::list() {
 	std::cout << std::endl;
 }
 
+int Logical::shutdown() {
+	_fileServices.stop();
+}

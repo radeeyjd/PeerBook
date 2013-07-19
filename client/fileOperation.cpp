@@ -61,7 +61,7 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 
 		recvd = recv(serverSock, &ver, sizeof(int), 0);
 		
-		if(1) {
+		if(mode == 2) {
 				Files *file = new Files;
 				file = _logical.getFileinfo(filename);
 				local_ver = file->version;
@@ -86,6 +86,9 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 			recvd = recv(serverSock, buf, fileSize, 0);
 			fwrite(buf, 1, fileSize, pFile);
 			fclose(pFile);
+		}
+		else {
+			std::cout << "File is upto date " << std::endl;
 		}
 	}
 	close(serverSock);	
@@ -167,4 +170,42 @@ void * FileOperations::updateManager(void * arg) {
 //1. get the version and store the version
 int FileOperations::cachefile(std::string filename) {
 	 readfile(filename, 0, 1); 
+}
+
+int FileOperations::commit(std::string filename) {
+	int serverSock, sent;		//Create a new server sock to connect to tracker
+	struct hostent *serv_addr;	
+	struct sockaddr_in server;
+	server.sin_family = AF_INET;
+	Files *file = new Files;
+	file = _logical.getFileinfo(filename);
+	//Dynamically lookup the IP and port number for the filename
+	server.sin_addr.s_addr = inet_addr((file->IP).c_str());	//IP address of tracker	
+	server.sin_port = htons(file->port);			//Trackers Port
+
+	//Contact the Tracker to get files and peers List
+	if( (serverSock = socket( AF_INET, SOCK_STREAM, 0)) == -1 ) {
+		std::cout << "Socket call failed" << std::endl;
+	}	
+	std::cout << "Connecting to the PeerServer" << std::endl;
+
+	if( (connect(serverSock, (struct sockaddr *)&server, addrSize)) == -1) {
+		std::cout << "Connect error" << std::endl;
+	}
+	else {
+	//'1' -- Writing a file to the home device
+		int req = 2;
+		sent = send(serverSock, &req, sizeof(int), 0);
+		if(sent == -1) {
+			std::cout << "Send Error" << std::endl;
+		}
+		int fnameSize = filename.size();
+		sent = send(serverSock, &fnameSize, sizeof(int), 0); //Send file size
+		sent = send(serverSock, filename.c_str(), fnameSize, 0);	//Send file name
+	}
+		
+}
+
+int FileOperations::shutdown() {
+	_logical.shutdown();
 }

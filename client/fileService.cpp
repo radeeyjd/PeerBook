@@ -13,9 +13,11 @@
 #include <netdb.h>
 #include <bitset>
 #include <sys/types.h> 	
+#include <stdlib.h>
 
 int FileServices::_numofFiles;
 Files FileServices::_files[100];
+int keepalive = 1;
 
 //Start the peer server
 void * FileServices::peerServer(void * arg) {
@@ -25,7 +27,7 @@ void * FileServices::peerServer(void * arg) {
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons(10096);
+	server.sin_port = htons(10086);
 
 	//create a socket
 	if((serverSock = socket( AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -41,7 +43,7 @@ void * FileServices::peerServer(void * arg) {
 	if(listen(serverSock, 5) == -1) {
 		std::cout << "PeerServer Listen call failed" << std::endl;
 	}
-	while(1) {
+	while(keepalive == 1) {
 			
 	//Accept connection
 		if((newsockfd = accept(serverSock, NULL, NULL)) == -1) {
@@ -60,6 +62,7 @@ void * FileServices::peerServer(void * arg) {
 			switch(request) {
 				case 0: {
 				//Read file request
+					std::cout << "New file read request " << std::endl;
 					int fnameSize, ver, recvd, bypass;
 					char fname[20];
 					char fdir[20] = "home/current/";
@@ -95,6 +98,7 @@ void * FileServices::peerServer(void * arg) {
 					}
 				case 1: {
 				//Write file request
+					std::cout << "New file write request " << std::endl;
 					int fnameSize, recvd, fileSize;
 					char fname[20];
 					char fdir[20] = "home/current/";
@@ -113,18 +117,39 @@ void * FileServices::peerServer(void * arg) {
 					break;
 					}
 				case 2: {
-				//Request for the version of the file
-					int fnameSize, recvd, fileSize, ver, sent;
+				//Commit file to stable version
+					std::cout << "A new commit request" << std::endl;
+					int fnameSize, recvd, fileSize;
 					char fname[20];
-					rec = recv(newsockfd, &fnameSize, sizeof(size_t), 0);
+					char fdir1[20] = "home/current/";
+					char fdir2[20] = "home/stable/";
+					char space[] = " ";
+					rec = recv(newsockfd, &fnameSize, sizeof(int), 0);
 					rec = recv(newsockfd, fname, fnameSize, 0); //Assume it already has the file
-					ver = getVersion(fname);
-					
-					sent = send(newsockfd, &ver, sizeof(int), 0);
+
+					Files *file = new Files;
+					file = getFileinfo(fname);
+
+					file->version++;
+					updatefilelist();
+
+					strcat(fdir1,fname);
+					strcat(fdir2,fname);
+	
+					char command[60];	
+					char cmd[] = "cp ";
+					strcat(command, cmd);
+					strcat(command, fdir1);
+					strcat(command, space);
+					strcat(command, fdir2);
+					system(command);
+					std::cerr << command; 
+					close(newsockfd);
 					break;
 				}
 				default: {
 					std::cout << "Illegal request" << std::endl;
+					break;
 				}
 			}
 		}	
@@ -143,9 +168,15 @@ int FileServices::start() {
 }
 
 int FileServices::stop() {
-//	pthread_join(sid, NULL);
-//	pthread_exit(sid, NULL);
+	pthread_join(sid,NULL);
+	keepalive = 0;
+	killserver();
 	return 1;
+}
+
+int FileServices::killserver() {
+	std::cout <<"Dead" <<std::endl;
+	keepalive = 0;
 }
 
 int FileServices::initialize() {
