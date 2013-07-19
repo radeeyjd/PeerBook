@@ -4,29 +4,33 @@
 int main() {
 	FileOperations fo;
 	std::cout << "PeerBook VFS" << std::endl;
-	std::cout << "1. Usage " << std::endl << "2. Read file " << std::endl;
-	std::cout << "3. Read stable file" << std::endl;
-	std::cout << "4. Write file " << std::endl;
-	std::cout << "5. List files " << std::endl;
-	std::cout << "6. Cache file " << std::endl;
-	std::cout << "7. Commit file" << std::endl;
-	std::cout << "8. Exit PeerBook " << std::endl << std::endl;
+	std::cout << "1. Usage " << std::endl << "2. Read  " << std::endl;
+	std::cout << "3. Read stable " << std::endl;
+	std::cout << "4. Write " << std::endl;
+	std::cout << "5. List " << std::endl;
+	std::cout << "6. Cache " << std::endl;
+	std::cout << "7. Commit " << std::endl;
+	std::cout << "8. Create " << std::endl;
+	std::cout << "9. Delete " << std::endl << std::endl;
+	std::cout << "0. Exit  " << std::endl << std::endl;
 	char req;
 	std::string filename;
 	bool cont = true;
 	while(cont) {
-		std::cout << "PeerBook> " ;
+		std::cout << "PeerBook $ " ;
 		std::cin >> req;
 		switch(req) {
 			case '1': {
 				std::cout << std::endl << "PeerBook VFS" << std::endl;
-				std::cout << "1. Usage " << std::endl << "2. Read file " << std::endl;
-				std::cout << "3. Read stable file " << std::endl;
-				std::cout << "4. Write file " << std::endl;
-				std::cout << "5. List files " << std::endl;
-				std::cout << "6. Cache file " << std::endl;
-				std::cout << "7. Commit file" << std::endl;
-				std::cout << "8. Exit VFS " << std::endl << std::endl;
+				std::cout << "1. Usage " << std::endl << "2. Read " << std::endl;
+				std::cout << "3. Read stable " << std::endl;
+				std::cout << "4. Write " << std::endl;
+				std::cout << "5. List " << std::endl;
+				std::cout << "6. Cache " << std::endl;
+				std::cout << "7. Commit " << std::endl;
+				std::cout << "8. Create " << std::endl;
+				std::cout << "9. Delete " << std::endl << std::endl;
+				std::cout << "0. Exit " << std::endl << std::endl;
 				break;
 			}
 			case '2': {
@@ -64,7 +68,17 @@ int main() {
 				break;
 			}
 			case '8': {
-				//fo.shutdown();
+				std::cout << "Please enter the file name " << std::endl;
+				std::cin >> filename;
+				break;
+			}
+			case '9': {
+				std::cout << "Please enter the file name " << std::endl;
+				std::cin >> filename;
+				break;
+			}
+			case '0': {
+				fo.shutdown();
 				cont = false;
 				break;
 			}
@@ -76,4 +90,5 @@ int main() {
 	std::cout << std::endl;
 	std::cin.ignore();
 	}
+	std::cout << std::endl << "Exiting PeerBook VFS" << std::endl;
 }

@@ -14,20 +14,23 @@
 #include <bitset>
 #include <sys/types.h> 	
 #include <stdlib.h>
+#include <signal.h>
 
 int FileServices::_numofFiles;
 Files FileServices::_files[100];
 int keepalive = 1;
-
+int serverSock;
 //Start the peer server
 void * FileServices::peerServer(void * arg) {
 //std::cout << "Starting to listen " << std::endl;
-	int serverSock, sent, newsockfd;
+	int sent, newsockfd, oldtype;
 	struct hostent *serv_addr;
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons(10086);
+	server.sin_port = htons(10053);
+
+	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldtype);
 
 	//create a socket
 	if((serverSock = socket( AF_INET, SOCK_STREAM, 0)) == -1) {
@@ -152,10 +155,12 @@ void * FileServices::peerServer(void * arg) {
 					break;
 				}
 			}
+			close(newsockfd);
 		}	
 	
    	}
-	close(serverSock);			  	
+	close(serverSock);			  
+	//pthread_exit(NULL);	
 }
 
 FileServices::FileServices() {
@@ -168,9 +173,12 @@ int FileServices::start() {
 }
 
 int FileServices::stop() {
+	int stat;
+	pthread_cancel(sid);
+	pthread_kill(sid, stat);
 	pthread_join(sid,NULL);
-	keepalive = 0;
-	killserver();
+	close(serverSock);	
+	pthread_exit(&sid);
 	return 1;
 }
 
