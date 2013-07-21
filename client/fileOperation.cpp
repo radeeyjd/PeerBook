@@ -209,3 +209,40 @@ int FileOperations::commit(std::string filename) {
 int FileOperations::shutdown() {
 	_logical.shutdown();
 }
+
+int FileOperations::createfile(std::string filename) {
+	for(int i = 0; i < _logical._numofPeers; i++) {
+	std::cout << "Peer " << i << std::endl;
+		int serverSock, sent;		//Create a new server sock to connect to tracker
+		struct hostent *serv_addr;	
+		struct sockaddr_in server;
+		server.sin_family = AF_INET;
+		Files *file = new Files;
+		server.sin_addr.s_addr = inet_addr(_logical._peers[i].IP.c_str());	//IP address of tracker	
+		server.sin_port = htons(_logical._peers[i].port);			//Trackers Port
+	
+		//Contact the Tracker to get files and peers List
+		if( (serverSock = socket( AF_INET, SOCK_STREAM, 0)) == -1 ) {
+			std::cout << "Socket call failed" << std::endl;
+		}	
+		std::cout << "Connecting to the PeerServer" << std::endl;
+	
+		if( (connect(serverSock, (struct sockaddr *)&server, addrSize)) == -1) {
+			std::cout << "Connect error" << std::endl;
+		}
+		else {
+		//'1' -- Writing a file to the home device
+			int req = 3;
+			sent = send(serverSock, &req, sizeof(int), 0);
+			if(sent == -1) {
+				std::cout << "Send Error" << std::endl;
+			}
+			int fnameSize = filename.size();
+			sent = send(serverSock, &fnameSize, sizeof(int), 0); //Send file size
+			sent = send(serverSock, filename.c_str(), fnameSize, 0);	//Send file name
+		}
+	}
+//	std::ofstream outfile ("fileslist", std::ofstream::binary);	
+//		outfile << filename << " " << "127.0.0.1" << " 10090 " << "0 " << "0 " << "0 " << std::endl;
+
+}

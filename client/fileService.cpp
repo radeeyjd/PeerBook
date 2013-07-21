@@ -16,8 +16,10 @@
 #include <stdlib.h>
 #include <signal.h>
 
-int FileServices::_numofFiles;
+int FileServices::_numofFiles = 0;
+int FileServices::_numofPeers = 0;
 Files FileServices::_files[100];
+Peer FileServices::_peers[6];
 int keepalive = 1;
 int serverSock;
 //Start the peer server
@@ -28,7 +30,7 @@ void * FileServices::peerServer(void * arg) {
 	struct sockaddr_in server;
 	server.sin_family = AF_INET;
 	server.sin_addr.s_addr = INADDR_ANY;
-	server.sin_port = htons(10053);
+	server.sin_port = htons(10090);
 
 	pthread_setcanceltype(PTHREAD_CANCEL_ASYNCHRONOUS, &oldtype);
 
@@ -121,35 +123,76 @@ void * FileServices::peerServer(void * arg) {
 					}
 				case 2: {
 				//Commit file to stable version
+					initialize();
 					std::cout << "A new commit request" << std::endl;
 					int fnameSize, recvd, fileSize;
-					char fname[20];
-					char fdir1[20] = "home/current/";
-					char fdir2[20] = "home/stable/";
+					char fname[] = " ";
+					char fdir1[] = "home/current/";
+					char fdir2[] = "home/stable/";
 					char space[] = " ";
+
+					char dot[] = ".";
 					rec = recv(newsockfd, &fnameSize, sizeof(int), 0);
 					rec = recv(newsockfd, fname, fnameSize, 0); //Assume it already has the file
 
 					Files *file = new Files;
 					file = getFileinfo(fname);
-
-					file->version++;
-					updatefilelist();
-
+				
 					strcat(fdir1,fname);
 					strcat(fdir2,fname);
 	
-					char command[60];	
+					char command[] = " ";	
 					char cmd[] = "cp ";
 					strcat(command, cmd);
-					strcat(command, fdir1);
+					strcat(command, "home/current/");
+					strcat(command, fname);
 					strcat(command, space);
-					strcat(command, fdir2);
-					system(command);
-					std::cerr << command; 
+					strcat(command, "home/stable/");
+					strcat(command, fname);
+					std::string cmmd(command);
+					char ver[] = " ";
+					sprintf(ver, "%d", file->version);	
+					char mvcmd[] = " ";
+					char mv[] = "mv ";
+					strcat(mvcmd, mv);
+					strcat(mvcmd, fdir2);
+					strcat(mvcmd, space);
+					strcat(mvcmd, fdir2);
+					strcat(mvcmd, dot);
+					strcat(mvcmd, ver);
+					system(mvcmd);
+					system(cmmd.c_str());				
+					file->version++;
+					updatefilelist();
+
 					close(newsockfd);
 					break;
 				}
+				case 3: {
+				//New file being added to the VFS
+					std::cout << "New file is added to the PeerBook" << std::endl;
+					int fnameSize;	
+					char fname[] = " ";
+					rec = recv(newsockfd, &fnameSize, sizeof(int), 0);
+					rec = recv(newsockfd, fname, fnameSize, 0); //Assume it already has the file
+	
+					char client_IP[20];
+					struct sockaddr_in client;
+					socklen_t len = sizeof(client);		
+					if(getpeername(newsockfd, (struct sockaddr*)&client, &len) == -1) {
+						std::cout << "Cannot get IP of Client" << std::endl;
+					}
+					inet_ntop(AF_INET, &client.sin_addr, client_IP, sizeof(client_IP));	
+			
+					try {
+						std::ofstream outfile ("fileslist", std::ofstream::out | std::ofstream::app);	
+						outfile << fname << " " << client_IP << " 10090 " << "0 " << "0 " << "0 " << std::endl;
+					}
+					catch (std::ofstream::failure e) {
+    					std::cout << "Exception opening/reading/closing file" << std::endl;
+					}
+					break;
+				}	
 				default: {
 					std::cout << "Illegal request" << std::endl;
 					break;
@@ -190,18 +233,32 @@ int FileServices::killserver() {
 int FileServices::initialize() {
 	std::ifstream fileList;		  		   //Create a new Stream
 	_numofFiles = 0;
+	_numofPeers = 0;
 	try {	
 		fileList.open("fileslist", std::ifstream::in);  //Open the stream
-		while(fileList.good()) {
-			fileList >> _files[_numofFiles].filename;
-			fileList >>	_files[_numofFiles].IP;
-			fileList >>	_files[_numofFiles].port;
-			fileList >> _files[_numofFiles].version;
-			fileList >> _files[_numofFiles].is_home;
-			fileList >> _files[_numofFiles].is_cached;
-			_numofFiles++;						//Set number of files 
+		if(fileList.is_open()) {
+			while(fileList.good()) {
+				fileList >> _files[_numofFiles].filename;
+				fileList >>	_files[_numofFiles].IP;
+				fileList >>	_files[_numofFiles].port;
+				fileList >> _files[_numofFiles].version;
+				fileList >> _files[_numofFiles].is_home;
+				fileList >> _files[_numofFiles].is_cached;
+				_numofFiles++;						//Set number of files 
+			}
+			fileList.close();						//Close file
 		}
-		fileList.close();						//Close file
+
+		std::ifstream peersList;
+		peersList.open("peerslist", std::ifstream::in);
+		if(peersList.is_open()) {
+			while(peersList.good()) {
+				peersList >> _peers[_numofPeers].IP;
+				peersList >> _peers[_numofPeers].port;
+				_numofPeers++;
+			}
+		peersList.close();
+		}
 	}
 	catch (std::ifstream::failure e) {
     	std::cout << "Exception opening/reading/closing file" << std::endl;
@@ -209,10 +266,11 @@ int FileServices::initialize() {
 	
 //	for(int iii = 0; iii < _numofFiles - 1; iii++)
 //		std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << " " << _files[iii].version  << " " << _files[iii].is_home << " " << _files[iii].is_cached << std::endl;
+//for(int iii = 0; iii < _numofPeers - 1; iii++)
+//	std::cout << _peers[iii].IP << " " << _peers[iii].port << std::endl;
 }
 
 Files *FileServices::getFileinfo(char* fname) {
-	std::cout << "Hello" << std::endl;
 	for(int iii = 0; iii < _numofFiles - 1; iii++) {
 		if(fname == _files[iii].filename) {
 	//std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << std::endl;
@@ -238,4 +296,10 @@ int FileServices::getVersion(char* fname) {
 		}
 	}
 	return -1;
+}
+
+int FileServices::create(std::string filename) {
+	for(int iii = 0; iii < _numofPeers - 1; iii++) {
+		
+	}
 }

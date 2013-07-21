@@ -1,5 +1,6 @@
 #include "PeerBook.h"
 #include <iostream>
+#include <cstdlib>
 
 int main() {
 	FileOperations fo;
@@ -70,6 +71,7 @@ int main() {
 			case '8': {
 				std::cout << "Please enter the file name " << std::endl;
 				std::cin >> filename;
+				fo.createfile(filename);
 				break;
 			}
 			case '9': {
@@ -80,6 +82,10 @@ int main() {
 			case '0': {
 				fo.shutdown();
 				cont = false;
+				break;
+			}
+			case 'c': {
+				system("clear");
 				break;
 			}
 			default: {

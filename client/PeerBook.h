@@ -14,6 +14,12 @@ class Files {
 		bool is_cached; //File cached locally or not 
 };
 
+class Peer {
+	public:
+		std::string IP;
+		int port;
+};
+
 //File Service layer
 
 //Functions:
@@ -27,15 +33,19 @@ class FileServices {
 		int start();
 		int stop();
 		static void * peerServer(void * arg); 
-		int initialize();
+		static int initialize();
 		static Files* getFileinfo(char* fname);
 		static int updatefilelist();
 		static int getVersion(char* fname);	
-		static int killserver();	
+		static int killserver();
+		static int create(std::string filename);	
+
 	private:
 		pthread_t sid;
 		static int _numofFiles;
 		static Files _files[100];
+		static int _numofPeers;
+		static Peer _peers[6];
 };
 
 //Provides mechanism to abstract file distribution
@@ -55,6 +65,10 @@ class Logical {
 		void list();
 		Logical();
 		int shutdown();
+		int create(std::string filename);
+		int _numofPeers;
+		Peer _peers[6];
+
 };
 
 //User Interface layer and file operations
