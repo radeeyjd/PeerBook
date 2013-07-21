@@ -22,6 +22,9 @@ FileOperations::FileOperations() {
 
 std::queue<std::string> FileOperations::updateQ;
 Logical FileOperations::_logical;
+std::queue<Files> createQ;
+void * createManager(void * arg); 
+
 
 int FileOperations::readfile(std::string filename, int version = 0, int mode = 0) {
 	int serverSock, sent;		//Create a new server sock to connect to tracker
@@ -30,6 +33,10 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 	server.sin_family = AF_INET;
 	Files *file = new Files;
 	file = _logical.getFileinfo(filename);
+	if(file == NULL) {
+		std::cout << "File does not exist in PeerBook" << std::endl;
+		return -1;
+	}
 	//Dynamically lookup the IP and port number for the filename
 	server.sin_addr.s_addr = inet_addr((file->IP).c_str());	//IP address of tracker	
 	server.sin_port = htons(file->port);			//Trackers Port
@@ -38,10 +45,10 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 	if( (serverSock = socket( AF_INET, SOCK_STREAM, 0)) == -1 ) {
 		std::cout << "Socket call failed" << std::endl;
 	}	
-	std::cout << "Connecting to the PeerServer" << std::endl;
+	std::cout << "Connecting to home device" << std::endl;
 
 	if( (connect(serverSock, (struct sockaddr *)&server, addrSize)) == -1) {
-		std::cout << "Connection failed" << std::endl;
+		std::cout << "Home device down" << std::endl;
 	}
 	else {
 	//'0' -- Reading a file from the home device
@@ -103,6 +110,10 @@ int FileOperations::writefile(std::string filename) {
 	Files *file = new Files;
 	file = _logical.getFileinfo(filename);
 	//Dynamically lookup the IP and port number for the filename
+	if(file == NULL) {
+		std::cout << "File does not exist in PeerBook" << std::endl;
+		return -1;
+	}
 	server.sin_addr.s_addr = inet_addr((file->IP).c_str());	//IP address of tracker	
 	server.sin_port = htons(file->port);			//Trackers Port
 
@@ -110,7 +121,7 @@ int FileOperations::writefile(std::string filename) {
 	if( (serverSock = socket( AF_INET, SOCK_STREAM, 0)) == -1 ) {
 		std::cout << "Socket call failed" << std::endl;
 	}	
-	std::cout << "Connecting to the PeerServer" << std::endl;
+	std::cout << "Connecting to the Home device" << std::endl;
 
 	if( (connect(serverSock, (struct sockaddr *)&server, addrSize)) == -1) {
 		std::cout << "Home device is down, Updated the transmission queue" << std::endl;
@@ -179,6 +190,10 @@ int FileOperations::commit(std::string filename) {
 	server.sin_family = AF_INET;
 	Files *file = new Files;
 	file = _logical.getFileinfo(filename);
+	if(file == NULL) {
+		std::cout << "File does not exist in PeerBook" << std::endl;
+		return -1;
+	}
 	//Dynamically lookup the IP and port number for the filename
 	server.sin_addr.s_addr = inet_addr((file->IP).c_str());	//IP address of tracker	
 	server.sin_port = htons(file->port);			//Trackers Port
@@ -202,8 +217,7 @@ int FileOperations::commit(std::string filename) {
 		int fnameSize = filename.size();
 		sent = send(serverSock, &fnameSize, sizeof(int), 0); //Send file size
 		sent = send(serverSock, filename.c_str(), fnameSize, 0);	//Send file name
-	}
-		
+	}	
 }
 
 int FileOperations::shutdown() {
@@ -225,7 +239,6 @@ int FileOperations::createfile(std::string filename) {
 		if( (serverSock = socket( AF_INET, SOCK_STREAM, 0)) == -1 ) {
 			std::cout << "Socket call failed" << std::endl;
 		}	
-		std::cout << "Connecting to the PeerServer" << std::endl;
 	
 		if( (connect(serverSock, (struct sockaddr *)&server, addrSize)) == -1) {
 			std::cout << "Connect error" << std::endl;
@@ -242,7 +255,7 @@ int FileOperations::createfile(std::string filename) {
 			sent = send(serverSock, filename.c_str(), fnameSize, 0);	//Send file name
 		}
 	}
-//	std::ofstream outfile ("fileslist", std::ofstream::binary);	
-//		outfile << filename << " " << "127.0.0.1" << " 10090 " << "0 " << "0 " << "0 " << std::endl;
+		std::ofstream outfile ("fileslist", std::ofstream::binary | std::ofstream::app);	
+		outfile << filename << " " << "127.0.0.1" << " 10090 " << "0 " << "0 " << "0 " << std::endl;
 
 }

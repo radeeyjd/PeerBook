@@ -25,6 +25,7 @@ int serverSock;
 //Start the peer server
 void * FileServices::peerServer(void * arg) {
 //std::cout << "Starting to listen " << std::endl;
+	initialize();
 	int sent, newsockfd, oldtype;
 	struct hostent *serv_addr;
 	struct sockaddr_in server;
@@ -210,7 +211,6 @@ FileServices::FileServices() {
 }
 
 int FileServices::start() {
-	initialize();
 	pthread_create(&sid, NULL, &FileServices::peerServer, NULL);
 	return 1;
 }
