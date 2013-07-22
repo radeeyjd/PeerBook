@@ -15,16 +15,16 @@
 #include <sys/types.h> 
 
 #define addrSize sizeof(struct sockaddr_in)
-
-FileOperations::FileOperations() {
-		pthread_create(&uid, NULL, &FileOperations::updateManager, NULL);
-}
-
 std::queue<std::string> FileOperations::updateQ;
 Logical FileOperations::_logical;
 std::queue<Files> createQ;
 void * createManager(void * arg); 
+pthread_t cid;
 
+FileOperations::FileOperations() {
+	pthread_create(&uid, NULL, &FileOperations::updateManager, NULL);
+	pthread_create(&cid, NULL, &createManager, NULL);
+}
 
 int FileOperations::readfile(std::string filename, int version = 0, int mode = 0) {
 	int serverSock, sent;		//Create a new server sock to connect to tracker
@@ -48,7 +48,12 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 	std::cout << "Connecting to home device" << std::endl;
 
 	if( (connect(serverSock, (struct sockaddr *)&server, addrSize)) == -1) {
-		std::cout << "Home device down" << std::endl;
+		if(mode == 2) {
+			std::cout << "Hode device down, counld not get the version number " << std::endl;
+		}
+		else {
+			std::cout << "Home device down" << std::endl;
+		}
 	}
 	else {
 	//'0' -- Reading a file from the home device
@@ -62,7 +67,8 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 		int fnameSize = filename.size();
 		sent = send(serverSock, &fnameSize, sizeof(size_t), 0); //Send file size
 		sent = send(serverSock, filename.c_str(), fnameSize, 0);	//Send file name
-		
+		sent = send(serverSock, &mode, sizeof(int), 0);
+		sent = send(serverSock, &version, sizeof(int), 0);	
 		int ver, local_ver, recvd;
 		int bypass = 0;
 
@@ -72,8 +78,14 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 				Files *file = new Files;
 				file = _logical.getFileinfo(filename);
 				local_ver = file->version;
-				if(ver == local_ver)
+				if(ver == local_ver) {
 					bypass = 1;
+				}
+				else {
+					file->version = ver;
+					updatefilelist();
+					_logical.initialize();
+				}
 		}
 
 		sent = send(serverSock, &bypass, sizeof(int), 0);
@@ -83,10 +95,10 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 			recvd = recv(serverSock, &fileSize, sizeof(int), 0);
 			char buf[65536];
 			std::string fdir;
-			if(mode == 0)
-				fdir = "home/temp/";
-			else if(mode == 1)
+			if(mode == 1)
 				fdir = "home/cache/";
+			else
+				fdir = "home/temp/";
 			fdir.append(filename);	
 			FILE *pFile;	
 			pFile = fopen(fdir.c_str(), "w");
@@ -177,6 +189,16 @@ void * FileOperations::updateManager(void * arg) {
 	}
 }
 
+void * createManager(void * arg) {
+	while(1) {
+		int qsize = createQ.size();
+		for(int i = 0; i < qsize; i++) {
+		}
+		sleep(100);
+	}
+}
+
+
 //Copy the file to local Cached folder
 //1. get the version and store the version
 int FileOperations::cachefile(std::string filename) {
@@ -259,3 +281,12 @@ int FileOperations::createfile(std::string filename) {
 		outfile << filename << " " << "127.0.0.1" << " 10090 " << "0 " << "0 " << "0 " << std::endl;
 
 }
+
+int FileOperations::updatefilelist() {
+	std::cout << "Updating list" << std::endl;
+	std::ofstream outfile ("fileslist", std::ofstream::binary);	
+	for(int iii = 0; iii < _logical._numofFiles - 1; iii++) {
+			outfile << _logical._files[iii].filename << " " << _logical._files[iii].IP << " " << _logical._files[iii].port << " " << _logical._files[iii].version  << " " << _logical._files[iii].is_home << " " << _logical._files[iii].is_cached << std::endl;
+	}
+}
+

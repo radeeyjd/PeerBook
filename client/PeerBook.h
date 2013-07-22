@@ -54,11 +54,6 @@ class FileServices {
 //	1. Show logical view
 //	2. File information
 class Logical {
-	private:
-		int _numofFiles;
-		Files _files[100];
-		FileServices _fileServices;
-		
 	public:	
 		int initialize();
 		Files *getFileinfo(std::string fname);
@@ -68,7 +63,9 @@ class Logical {
 		int create(std::string filename);
 		int _numofPeers;
 		Peer _peers[6];
-
+		int _numofFiles;
+		Files _files[100];
+		FileServices _fileServices;
 };
 
 //User Interface layer and file operations
@@ -98,6 +95,8 @@ class FileOperations {
 		static int cachefile(std::string filename); 
 		FileOperations();
 		int shutdown();
+	    static int updatefilelist();
+
 };
 
 

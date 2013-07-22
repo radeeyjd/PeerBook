@@ -41,9 +41,12 @@ int main() {
 				break;
 			}
 			case '3': {
+				int version;
 				std::cout << "Please enter the file name " << std::endl;
 				std::cin >> filename;
-				fo.readfile(filename, 0, 2);
+				std::cout << "Please enter the version to read " << std::endl;
+				std::cin >> version;
+				fo.readfile(filename, version, 2);
 				break;
 			}
 			case '4': {

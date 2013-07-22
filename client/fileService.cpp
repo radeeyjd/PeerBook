@@ -69,24 +69,47 @@ void * FileServices::peerServer(void * arg) {
 				case 0: {
 				//Read file request
 					std::cout << "New file read request " << std::endl;
-					int fnameSize, ver, recvd, bypass;
-					char fname[20];
-					char fdir[20] = "home/current/";
+					int fnameSize, ver, recvd, bypass, reqver, mode;
+					char fname[] = " ";
+					char fdir[] = " ";
+					char vers[] = " ";
+					std::string fdirV;
 					rec = recv(newsockfd, &fnameSize, sizeof(size_t), 0);
 					rec = recv(newsockfd, fname, fnameSize, 0); //Assume it already has the file
-					strcat(fdir,fname);
+					rec = recv(newsockfd, &mode, sizeof(int), 0);
+					rec = recv(newsockfd, &reqver, sizeof(int), 0);
 				
+					if(mode == 0)
+						strcpy(fdir, "home/current/");
+					else
+						strcpy(fdir, "home/stable/");
+					strcat(fdir,fname);
+					std::string dirc(fdir);
+					fdirV.append(dirc);	
 					ver = getVersion(fname);	
 					sent = send(newsockfd, &ver, sizeof(int), 0);
 				
 					rec = recv(newsockfd, &bypass, sizeof(int), 0);				
-					
+					sprintf(vers, "%d", reqver);	
+					FILE *pFile;
+					char buf[65536], fname1[100];
+					int fileSize, n_chunks;			
+					pFile = fopen(dirc.c_str(), "rb");
 					if(bypass == 0) {
-						FILE *pFile;
-						char buf[65536], fname1[100];
-						int fileSize, n_chunks;				//Get the file size
-						std::cout <<"File "<< fdir <<" is requested." << std::endl;
-						pFile = fopen(fdir, "rb");
+			
+	
+						if(mode == 2 && reqver != 0) {
+							fdirV.append(".");
+							fdirV.append(vers);
+							pFile = fopen(fdirV.c_str(), "rb");
+							if(pFile == NULL) {
+								pFile = fopen(dirc.c_str(), "rb");
+							}
+							else {
+							}
+						}
+
+						std::cout <<"File "<< fdirV <<" is requested." << std::endl;
 						fseek(pFile, 0, SEEK_END);
 						fileSize = ftell(pFile);
 						rewind(pFile);
@@ -94,7 +117,7 @@ void * FileServices::peerServer(void * arg) {
 						fread(buf,1, fileSize,pFile);
 						fclose(pFile);
 						sent = send(newsockfd, buf, fileSize, 0);
-						std::cout << "File is sent" << std::endl;
+						std::cout << "File " << fname <<"  is sent" << std::endl;
 					}
 					else {
 						std::cout << "File not sent, already the version is latest " << std::endl;
@@ -217,7 +240,7 @@ int FileServices::start() {
 
 int FileServices::stop() {
 	int stat;
-	pthread_cancel(sid);
+	keepalive = 0;
 	pthread_kill(sid, stat);
 	pthread_join(sid,NULL);
 	close(serverSock);	
