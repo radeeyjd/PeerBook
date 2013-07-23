@@ -55,7 +55,7 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 				std::string cmd;
 				cmd.append("vi home/cache/");
 				cmd.append(filename);
-				system(cmd);
+				system(cmd.c_str());
 			}
 		}
 		else {
