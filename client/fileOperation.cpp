@@ -2,6 +2,7 @@
 #include <iostream>
 #include <string>
 #include <sys/socket.h>
+#include <cstdlib>
 #include <netinet/in.h>
 #include <arpa/inet.h>
 #include <fstream>
@@ -49,7 +50,13 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 
 	if( (connect(serverSock, (struct sockaddr *)&server, addrSize)) == -1) {
 		if(mode == 2) {
-			std::cout << "Hode device down, counld not get the version number " << std::endl;
+			std::cout << "Hode device down " << std::endl;
+			if(file->is_cached == true) {
+				std::string cmd;
+				cmd.append("vi home/cache/");
+				cmd.append(filename);
+				system(cmd);
+			}
 		}
 		else {
 			std::cout << "Home device down" << std::endl;
@@ -78,7 +85,7 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 				Files *file = new Files;
 				file = _logical.getFileinfo(filename);
 				local_ver = file->version;
-				if(ver == local_ver) {
+				if(ver == local_ver && file->is_cached == true) {
 					bypass = 1;
 				}
 				else {
@@ -95,7 +102,14 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 			recvd = recv(serverSock, &fileSize, sizeof(int), 0);
 			char buf[65536];
 			std::string fdir;
-			if(mode == 1)
+			Files *file = new Files;
+			if(mode == 1) {
+				fdir = "home/cache/";
+				file = _logical.getFileinfo(filename);
+				file->is_cached = true;
+				updatefilelist();
+			}
+			else if(file->is_cached == true)	
 				fdir = "home/cache/";
 			else
 				fdir = "home/temp/";
@@ -105,8 +119,18 @@ int FileOperations::readfile(std::string filename, int version = 0, int mode = 0
 			recvd = recv(serverSock, buf, fileSize, 0);
 			fwrite(buf, 1, fileSize, pFile);
 			fclose(pFile);
+			std::string cmdd;
+			cmdd.append("vi ");
+			cmdd.append(fdir);
+			system(cmdd.c_str());
+
 		}
-		else {
+		else { 
+			std::string cmdd;
+           	cmdd.append("vi ");
+            cmdd.append("home/cache/");
+            cmdd.append(filename);
+        	system(cmdd.c_str());
 			std::cout << "File is upto date " << std::endl;
 		}
 	}
@@ -248,7 +272,6 @@ int FileOperations::shutdown() {
 
 int FileOperations::createfile(std::string filename) {
 	for(int i = 0; i < _logical._numofPeers; i++) {
-	std::cout << "Peer " << i << std::endl;
 		int serverSock, sent;		//Create a new server sock to connect to tracker
 		struct hostent *serv_addr;	
 		struct sockaddr_in server;
@@ -263,7 +286,7 @@ int FileOperations::createfile(std::string filename) {
 		}	
 	
 		if( (connect(serverSock, (struct sockaddr *)&server, addrSize)) == -1) {
-			std::cout << "Connect error" << std::endl;
+			//std::cout << "Connect error" << std::endl;
 		}
 		else {
 		//'1' -- Writing a file to the home device

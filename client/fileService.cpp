@@ -63,7 +63,6 @@ void * FileServices::peerServer(void * arg) {
 			if(rec == -1) {
 				std::cout << "Receive error " << std::endl;
 			}
-		std::cout << "Request type " << request << std::endl;
 			//Switch on the request type
 			switch(request) {
 				case 0: {
@@ -74,11 +73,13 @@ void * FileServices::peerServer(void * arg) {
 					char fdir[] = " ";
 					char vers[] = " ";
 					std::string fdirV;
+				
 					rec = recv(newsockfd, &fnameSize, sizeof(size_t), 0);
 					rec = recv(newsockfd, fname, fnameSize, 0); //Assume it already has the file
 					rec = recv(newsockfd, &mode, sizeof(int), 0);
 					rec = recv(newsockfd, &reqver, sizeof(int), 0);
 				
+					ver = getVersion(fname);		
 					if(mode == 0)
 						strcpy(fdir, "home/current/");
 					else
@@ -86,18 +87,16 @@ void * FileServices::peerServer(void * arg) {
 					strcat(fdir,fname);
 					std::string dirc(fdir);
 					fdirV.append(dirc);	
-					ver = getVersion(fname);	
-					sent = send(newsockfd, &ver, sizeof(int), 0);
 				
+					sent = send(newsockfd, &ver, sizeof(int), 0);
 					rec = recv(newsockfd, &bypass, sizeof(int), 0);				
+				
 					sprintf(vers, "%d", reqver);	
 					FILE *pFile;
 					char buf[65536], fname1[100];
 					int fileSize, n_chunks;			
 					pFile = fopen(dirc.c_str(), "rb");
-					if(bypass == 0) {
-			
-	
+					if(bypass == 0 || reqver !=0) {
 						if(mode == 2 && reqver != 0) {
 							fdirV.append(".");
 							fdirV.append(vers);
@@ -108,8 +107,6 @@ void * FileServices::peerServer(void * arg) {
 							else {
 							}
 						}
-
-						std::cout <<"File "<< fdirV <<" is requested." << std::endl;
 						fseek(pFile, 0, SEEK_END);
 						fileSize = ftell(pFile);
 						rewind(pFile);
@@ -117,10 +114,10 @@ void * FileServices::peerServer(void * arg) {
 						fread(buf,1, fileSize,pFile);
 						fclose(pFile);
 						sent = send(newsockfd, buf, fileSize, 0);
-						std::cout << "File " << fname <<"  is sent" << std::endl;
+						std::cout << "File " << fdirV <<"  is sent" << std::endl;
 					}
 					else {
-						std::cout << "File not sent, already the version is latest " << std::endl;
+						std::cout << "File not sent, already the cached version is latest " << std::endl;
 					}
 					close(newsockfd);
 					break;	
@@ -158,34 +155,31 @@ void * FileServices::peerServer(void * arg) {
 					char dot[] = ".";
 					rec = recv(newsockfd, &fnameSize, sizeof(int), 0);
 					rec = recv(newsockfd, fname, fnameSize, 0); //Assume it already has the file
-
+					std::string filename(fname);
 					Files *file = new Files;
 					file = getFileinfo(fname);
 				
 					strcat(fdir1,fname);
 					strcat(fdir2,fname);
 	
-					char command[] = " ";	
-					char cmd[] = "cp ";
-					strcat(command, cmd);
-					strcat(command, "home/current/");
-					strcat(command, fname);
-					strcat(command, space);
-					strcat(command, "home/stable/");
-					strcat(command, fname);
-					std::string cmmd(command);
+					std::string command;	
+					command.append("cp ");
+					command.append("home/current/");
+					command.append(filename);
+					command.append(" home/stable/");
+					command.append(filename);
 					char ver[] = " ";
 					sprintf(ver, "%d", file->version);	
-					char mvcmd[] = " ";
-					char mv[] = "mv ";
-					strcat(mvcmd, mv);
-					strcat(mvcmd, fdir2);
-					strcat(mvcmd, space);
-					strcat(mvcmd, fdir2);
-					strcat(mvcmd, dot);
-					strcat(mvcmd, ver);
-					system(mvcmd);
-					system(cmmd.c_str());				
+					std::string mvcmd;
+					mvcmd.append("mv ");
+					mvcmd.append("home/stable/");
+					mvcmd.append(filename);
+					mvcmd.append(" home/stable/");
+					mvcmd.append(filename);
+					mvcmd.append(".");
+					mvcmd.append(ver);
+					system(mvcmd.c_str());			
+					system(command.c_str());
 					file->version++;
 					updatefilelist();
 
@@ -294,6 +288,7 @@ int FileServices::initialize() {
 }
 
 Files *FileServices::getFileinfo(char* fname) {
+	initialize();
 	for(int iii = 0; iii < _numofFiles - 1; iii++) {
 		if(fname == _files[iii].filename) {
 	//std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << std::endl;
@@ -304,14 +299,16 @@ Files *FileServices::getFileinfo(char* fname) {
 }
 
 int FileServices::updatefilelist() {
-	std::cout << "Updating list" << std::endl;
 	std::ofstream outfile ("fileslist", std::ofstream::binary);	
 	for(int iii = 0; iii <_numofFiles - 1; iii++) {
 			outfile << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << " " << _files[iii].version  << " " << _files[iii].is_home << " " << _files[iii].is_cached << std::endl;
 	}
+	initialize();
 }
 
+
 int FileServices::getVersion(char* fname) {
+		initialize();
 		for(int iii = 0; iii < _numofFiles - 1; iii++) {
 		if(fname == _files[iii].filename) {
 			//std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << std::endl;

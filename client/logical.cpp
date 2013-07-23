@@ -50,7 +50,7 @@ int Logical::initialize() {
 Files *Logical::getFileinfo(std::string fname) {
 	for(int iii = 0; iii < _numofFiles - 1; iii++) {
 		if(fname == _files[iii].filename) {
-	std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << std::endl;
+//	std::cout << _files[iii].filename << " " << _files[iii].IP << " " << _files[iii].port << std::endl;
 			return &_files[iii];
 		}
 	}
